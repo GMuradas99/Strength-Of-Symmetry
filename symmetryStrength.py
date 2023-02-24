@@ -79,7 +79,7 @@ def symmetryStrengthStartVertex(imgPath, index, startVertex, bbWidthAndLength, r
         return getMetrics(index, leftHalf,rightHalf)
     
 # Remove negative coordinates from list
-def removeNegativeCoordinates(points):
+def removeNegativeCoordinates(points, height, width):
     result = []
     for point in points:
         x = point[0]
@@ -88,13 +88,16 @@ def removeNegativeCoordinates(points):
             x = 0
         if y < 0:
             y = 0
+        if x > width:
+            x = width
+        if y > height:
+            y = height
         result.append((x,y))
     return result
 
 ### MAIM FUNCTION ###
 # Crops image with center of rectangle, dimensions and rotation
 def symmetryStrength(img, centerX, centerY, width, height, rotation, axisHorizontal, index = "None", onlyUQUI = False, display = False):
-    
     # Making width and height even
     if width % 2 != 0:
         width += 1
@@ -106,7 +109,7 @@ def symmetryStrength(img, centerX, centerY, width, height, rotation, axisHorizon
            (centerX+width/2 , centerY+height/2), (centerX-width/2 , centerY+height/2)]
 
     # Removing negative coordinates
-    pts = removeNegativeCoordinates(pts)
+    pts = removeNegativeCoordinates(pts, img.shape[0], img.shape[1])
 
     # Rotating and cropping image
     rotationMatrix = cv2.getRotationMatrix2D((centerX,centerY),rotation,1)
@@ -116,11 +119,21 @@ def symmetryStrength(img, centerX, centerY, width, height, rotation, axisHorizon
     # Flipping image if axis is horizontal
     if axisHorizontal:
         img = cv2.rotate(img, cv2.ROTATE_90_CLOCKWISE)
-
+        
     # Dividing image
     leftHalf = img[:, :img.shape[1]//2]
     rightHalf = img[:, img.shape[1]//2:]
     rightHalf = cv2.flip(rightHalf, 1)
+
+    # Making sure both sizes are the same
+    if leftHalf.shape[1] > rightHalf.shape[1]:
+        leftHalf = leftHalf[:,:-1]
+    if leftHalf.shape[1] < rightHalf.shape[1]:
+        rightHalf = rightHalf[:,:-1]
+    if leftHalf.shape[0] > rightHalf.shape[0]:
+        leftHalf = leftHalf[:-1]
+    if leftHalf.shape[0] < rightHalf.shape[0]:
+        rightHalf = rightHalf[:-1]
 
     # Copying the black pixels
     copyMask(rightHalf,leftHalf)
