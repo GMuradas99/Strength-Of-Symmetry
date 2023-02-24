@@ -23,7 +23,7 @@ def transformKeypoints(keypoints, rotationMatrix):
 # Copies the pixels = [0,0,0] on both sides of the image
 def copyMask(img1, img2):
     for i in range(img1.shape[0]):
-        for j in range(img1.shape[0]):
+        for j in range(img1.shape[1]):
             if (img1[i,j] == [0,0,0]).all():
                 img2[i,j] = [0,0,0]
             if (img2[i,j] == [0,0,0]).all():
@@ -36,7 +36,7 @@ def getMetrics(title, img1, img2):
         'RMSE': [rmse(img1, img2)],
         'PSNR': [psnr(img1, img2)],
         'UQI': [uqi(img1, img2)],
-        'MSSSIM': [msssim(img1, img2)],
+        # 'MSSSIM': [msssim(img1, img2)],  # For 'valid' mode, one must be at least as large as the other in every dimension
         'ERGAS': [ergas(img1, img2)],
         'SCC': [scc(img1, img2)],
         # 'RASE': [rase(img1, img2)],  # CANNOT DIVIDE BY 0
@@ -47,9 +47,8 @@ def getMetrics(title, img1, img2):
 
     return result
 
-### MAIM FUNCTION ###
 # Returns statistics for the strength of symmetry of the selected bounding box on the image
-def symmetryStrength(imgPath, index, startVertex, bbWidthAndLength, rotationDegrees, onlyUQUI = False, resolutionFactor = None):
+def symmetryStrengthStartVertex(imgPath, index, startVertex, bbWidthAndLength, rotationDegrees, onlyUQUI = False, resolutionFactor = None):
     # Reading the image
     img = cv2.imread(imgPath)
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
@@ -72,6 +71,68 @@ def symmetryStrength(imgPath, index, startVertex, bbWidthAndLength, rotationDegr
         # Reducing resolution
         leftHalf = cv2.resize(leftHalf, (leftHalf.shape[1]//resolutionFactor, leftHalf.shape[0]//resolutionFactor))
         rightHalf = cv2.resize(rightHalf, (leftHalf.shape[1]//resolutionFactor, leftHalf.shape[0]//resolutionFactor))
+
+    if onlyUQUI:
+        return uqi(leftHalf, rightHalf)
+    else:
+        return getMetrics(index, leftHalf,rightHalf)
+    
+# Remove negative coordinates from list
+def removeNegativeCoordinates(points):
+    result = []
+    for point in points:
+        x = point[0]
+        y = point[1]
+        if x < 0:
+            x = 0
+        if y < 0:
+            y = 0
+        result.append((x,y))
+    return result
+
+### MAIM FUNCTION ###
+# Crops image with center of rectangle, dimensions and rotation
+def symmetryStrength(img, centerX, centerY, width, height, rotation, axisHorizontal, index = "None", onlyUQUI = False, display = False):
+    
+    # Making width and height even
+    if width % 2 != 0:
+        width += 1
+    if height % 2 != 0:
+        height += 1
+
+    # Calculating the bounding box
+    pts = [(centerX-width/2 , centerY-height/2), (centerX+width/2 , centerY-height/2), 
+           (centerX+width/2 , centerY+height/2), (centerX-width/2 , centerY+height/2)]
+
+    # Removing negative coordinates
+    pts = removeNegativeCoordinates(pts)
+
+    # Rotating and cropping image
+    rotationMatrix = cv2.getRotationMatrix2D((centerX,centerY),rotation,1)
+    img = cv2.warpAffine(img,rotationMatrix,(img.shape[1], img.shape[0]))
+    img = img[int(pts[0][1]):int(pts[0][1])+int(height), int(pts[0][0]):int(pts[0][0]+width)]
+
+    # Flipping image if axis is horizontal
+    if axisHorizontal:
+        img = cv2.rotate(img, cv2.ROTATE_90_CLOCKWISE)
+
+    # Dividing image
+    leftHalf = img[:, :img.shape[1]//2]
+    rightHalf = img[:, img.shape[1]//2:]
+    rightHalf = cv2.flip(rightHalf, 1)
+
+    # Copying the black pixels
+    copyMask(rightHalf,leftHalf)
+
+    # Display
+    if display:
+        diff = cv2.subtract(leftHalf, rightHalf)
+        _, ax = plt.subplots(1,4, figsize=(15, 5))
+        ax[0].imshow(img), ax[0].set_title(f'Bounding Box')
+        ax[1].imshow(leftHalf), ax[1].set_title(f'Left half')
+        ax[2].imshow(rightHalf), ax[2].set_title(f'Right half')
+        ax[3].imshow(diff), ax[3].set_title(f'Difference')
+        plt.show()
 
     if onlyUQUI:
         return uqi(leftHalf, rightHalf)
