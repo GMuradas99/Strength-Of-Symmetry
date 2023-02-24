@@ -5,9 +5,10 @@
 import numpy as np
 import pandas as pd
 import cv2
+import matplotlib.pyplot as plt
 
-from sewar.full_ref import mse, rmse, psnr, uqi, ssim, ergas, scc, sam, msssim
-# from sewar.full_ref import rase, vifp
+from sewar.full_ref import mse, rmse, psnr, uqi, ssim, ergas, scc, sam
+# from sewar.full_ref import rase, vifp, msssim
 
 ### OPERATIONS ###
 
