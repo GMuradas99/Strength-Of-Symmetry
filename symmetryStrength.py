@@ -6,9 +6,9 @@ import numpy as np
 import pandas as pd
 import cv2
 import matplotlib.pyplot as plt
+import warnings
 
-from sewar.full_ref import mse, rmse, psnr, uqi, ssim, ergas, scc, sam
-# from sewar.full_ref import rase, vifp, msssim
+from sewar.full_ref import rase, vifp, msssim,mse, rmse, psnr, uqi, ssim, ergas, scc, sam
 
 ### OPERATIONS ###
 
@@ -37,13 +37,88 @@ def getMetrics(title, img1, img2):
         'RMSE': [rmse(img1, img2)],
         'PSNR': [psnr(img1, img2)],
         'UQI': [uqi(img1, img2)],
-        # 'MSSSIM': [msssim(img1, img2)],  # For 'valid' mode, one must be at least as large as the other in every dimension
+        'MSSSIM': [msssim(img1, img2)],  # For 'valid' mode, one must be at least as large as the other in every dimension
         'ERGAS': [ergas(img1, img2)],
         'SCC': [scc(img1, img2)],
-        # 'RASE': [rase(img1, img2)],  # CANNOT DIVIDE BY 0
+        'RASE': [rase(img1, img2)],  # CANNOT DIVIDE BY 0
         'SAM': [sam(img1, img2)],
-        # 'VIF':[vifp(img1, img2)],  # DOES NOT WORK WITH LOWER RESOLUTIONS
+        'VIF':[vifp(img1, img2)],  # DOES NOT WORK WITH LOWER RESOLUTIONS
         'SSIM': [ssim(img1, img2)]
+    }, index=[title])
+
+    return result
+
+# Returns the metrics for the similarities between two images, None if a metric cannot be calculated
+def getMetricsWithErrorHandling(title, img1, img2):
+    warnings.filterwarnings("ignore")
+
+    m = 0
+    r = 0
+    p = 0
+    u = 0
+    ms = 0
+    e = 0
+    s = 0
+    ra = 0
+    sa = 0
+    v = 0
+    ssi = 0
+    try:
+        m = mse(img1,img2)
+    except:
+        m = None
+    try:
+        r = rmse(img1,img2)
+    except:
+        r = None
+    try:
+        p = psnr(img1,img2)
+    except:
+        p = None
+    try:
+        u = uqi(img1,img2)
+    except:
+        u = None
+    try:
+        ms = msssim(img1,img2)
+    except:
+        ms = None
+    try:
+        e = ergas(img1,img2)
+    except:
+        e = None
+    try:
+        s = scc(img1,img2)
+    except:
+        s = None
+    try:
+        ra = rase(img1,img2)
+    except:
+        ra = None
+    try:
+        sa = sam(img1,img2)
+    except:
+        sa = None
+    try:
+        v = vifp(img1,img2)
+    except:
+        v = None
+    try:
+        ssi = ssim(img1,img2)
+    except:
+        ssi = None
+    result = pd.DataFrame({
+        'MSE':    [m],
+        'RMSE':   [r],
+        'PSNR':   [p],
+        'UQI':    [u],
+        'MSSSIM': [ms],  
+        'ERGAS':  [e],
+        'SCC':    [s],
+        'RASE':   [ra], 
+        'SAM':    [sa],
+        'VIF':    [v], 
+        'SSIM':   [ssi]
     }, index=[title])
 
     return result
@@ -76,7 +151,7 @@ def symmetryStrengthStartVertex(imgPath, index, startVertex, bbWidthAndLength, r
     if onlyUQUI:
         return uqi(leftHalf, rightHalf)
     else:
-        return getMetrics(index, leftHalf,rightHalf)
+        return getMetricsWithErrorHandling(index, leftHalf,rightHalf)
     
 # Remove negative coordinates from list
 def removeNegativeCoordinates(points, height, width):
@@ -151,4 +226,4 @@ def symmetryStrength(img, centerX, centerY, width, height, rotation, axisHorizon
     if onlyUQUI:
         return uqi(leftHalf, rightHalf)
     else:
-        return getMetrics(index, leftHalf,rightHalf)
+        return getMetricsWithErrorHandling(index, leftHalf,rightHalf)
