@@ -170,7 +170,6 @@ def removeNegativeCoordinates(points, height, width):
         result.append((x,y))
     return result
 
-### MAIM FUNCTION ###
 # Crops image with center of rectangle, dimensions and rotation
 def symmetryStrength(img, centerX, centerY, width, height, rotation, axisHorizontal, index = "None", onlyUQUI = False, display = False):
     # Making width and height even
@@ -194,7 +193,25 @@ def symmetryStrength(img, centerX, centerY, width, height, rotation, axisHorizon
     # Flipping image if axis is horizontal
     if axisHorizontal:
         img = cv2.rotate(img, cv2.ROTATE_90_CLOCKWISE)
-        
+    
+    if img is None:
+        if onlyUQUI:
+            return -1
+        else:
+            return pd.DataFrame({
+                'MSE':    [None],
+                'RMSE':   [None],
+                'PSNR':   [None],
+                'UQI':    [None],
+                'MSSSIM': [None],  
+                'ERGAS':  [None],
+                'SCC':    [None],
+                'RASE':   [None], 
+                'SAM':    [None],
+                'VIF':    [None], 
+                'SSIM':   [None]
+            })
+
     # Dividing image
     leftHalf = img[:, :img.shape[1]//2]
     rightHalf = img[:, img.shape[1]//2:]
